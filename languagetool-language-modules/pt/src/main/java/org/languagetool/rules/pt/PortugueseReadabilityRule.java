@@ -28,6 +28,8 @@ import org.languagetool.rules.Category;
 import org.languagetool.rules.CategoryId;
 import org.languagetool.rules.ReadabilityRule;
 import org.languagetool.rules.Category.Location;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A rule that checks the readability of Portuguese text (using the Flesch-Reading-Ease Formula)
@@ -37,7 +39,10 @@ import org.languagetool.rules.Category.Location;
  * @since 4.4
  */
 public class PortugueseReadabilityRule extends ReadabilityRule {
-  
+  private static Logger logger = LoggerFactory.getLogger(PortugueseReadabilityRule.class);
+
+  private static final SyllablesData syllablesData = new SyllablesData("/pt/divisao_silabica.csv");
+
   boolean tooEasyTest;
 
   public PortugueseReadabilityRule(ResourceBundle messages, Language lang, UserConfig userConfig, boolean tooEasyTest) {
@@ -154,6 +159,7 @@ public class PortugueseReadabilityRule extends ReadabilityRule {
     if(word.length() == 0) {
       return 0;
     }
+
     int nSyllables = 0;
     if(isVowel(word.charAt(0))) {
       nSyllables++;
@@ -181,6 +187,16 @@ public class PortugueseReadabilityRule extends ReadabilityRule {
         }
       } else {
         lastDouble = false;
+      }
+    }
+
+    if (word.length() > 1) {
+      int lookup = syllablesData.lookup(word.toLowerCase());
+      if (lookup != -1) {
+        if (nSyllables > 0 && nSyllables != lookup) {
+          logger.error("syllables count: " + word + " h:" + nSyllables + " d:" + lookup);
+          return lookup;
+        }
       }
     }
     return nSyllables == 0 ? 1 : nSyllables;
